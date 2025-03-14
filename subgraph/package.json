@@ -1,0 +1,14 @@
+{
+  "name": "studyfund-subgraph",
+  "version": "0.1.0",
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "prepare:goldsky": "goldsky prepare",
+    "deploy": "goldsky subgraph deploy studyfund/v1 --from-path ."
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "^0.51.0",
+    "@graphprotocol/graph-ts": "^0.31.0"
+  }
+} 

@@ -1,0 +1,35 @@
+specVersion: 0.0.5
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: StudyFund
+    network: open-campus-codex
+    source:
+      address: "0xBBe02596F093Ea9d4B6c942bB73C03c02B0D15E0"
+      abi: StudyFund
+      startBlock: 33534812
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Donation
+        - Raffle
+        - Scholarship
+        - Donor
+        - RaffleEntry
+        - RafflePrize
+      abis:
+        - name: StudyFund
+          file: ./abis/StudyFund.json
+      eventHandlers:
+        - event: DonationReceived(indexed address,uint256,uint256)
+          handler: handleDonationReceived
+        - event: RaffleCompleted(indexed uint256,address[],uint256[])
+          handler: handleRaffleCompleted
+        - event: ScholarshipAwarded(indexed address,uint256)
+          handler: handleScholarshipAwarded
+        - event: PrizesClaimed(indexed uint256,indexed address,uint256)
+          handler: handlePrizesClaimed
+      file: ./src/study-fund.ts 

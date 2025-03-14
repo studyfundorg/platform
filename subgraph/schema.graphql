@@ -1,0 +1,59 @@
+type Donor @entity {
+  id: ID!
+  address: String!
+  totalDonated: BigInt!
+  entries: BigInt!
+  donations: [Donation!]! @derivedFrom(field: "donor")
+  raffleEntries: [RaffleEntry!]! @derivedFrom(field: "donor")
+  createdAt: BigInt!
+  updatedAt: BigInt!
+}
+
+type Donation @entity {
+  id: ID!
+  donor: Donor!
+  amount: BigInt!
+  entries: BigInt!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+}
+
+type Raffle @entity {
+  id: ID!
+  startTime: BigInt!
+  endTime: BigInt!
+  prizePool: BigInt!
+  donations: BigInt!
+  winners: [String!]
+  completed: Boolean!
+  entries: [RaffleEntry!]! @derivedFrom(field: "raffle")
+  prizes: [RafflePrize!]! @derivedFrom(field: "raffle")
+  createdAt: BigInt!
+  completedAt: BigInt
+}
+
+type RaffleEntry @entity {
+  id: ID!
+  raffle: Raffle!
+  donor: Donor!
+  entries: BigInt!
+}
+
+type RafflePrize @entity {
+  id: ID!
+  raffle: Raffle!
+  winner: String!
+  amount: BigInt!
+  claimed: Boolean!
+  claimedAt: BigInt
+}
+
+type Scholarship @entity {
+  id: ID!
+  recipient: String!
+  amount: BigInt!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+} 
