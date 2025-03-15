@@ -77,10 +77,14 @@ export class WebhookService {
         donor: data.donor || data.recipient || data.winner,
         amount: data.amount,
         timestamp: data.timestamp || new Date().toISOString(),
-        transactionHash: data.transactionHash,
+        transactionHash: data.transaction_hash || data.transactionHash || "",
         status: data.status || 'completed',
         metadata: { ...data }
       };
+
+      if (!historyEntry.transactionHash) {
+        this.logger.warn(`Missing transaction hash for ${type} history entry: ${JSON.stringify(data)}`);
+      }
 
       await this.firebaseService.saveEvent('donor_history', historyEntry);
       this.logger.log(`Added ${type} to history for donor ${historyEntry.donor}`);
