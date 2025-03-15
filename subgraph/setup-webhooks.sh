@@ -25,7 +25,7 @@ echo "Creating webhook for donors..."
 goldsky subgraph webhook create $SUBGRAPH_NAME --name donor-webhook --entity donor --url $WEBHOOK_URL --secret $WEBHOOK_SECRET
 
 echo "Creating webhook for raffle prizes..."
-goldsky subgraph webhook create $SUBGRAPH_NAME --name raffle-prize-webhook --entity raffleprize --url $WEBHOOK_URL --secret $WEBHOOK_SECRET
+goldsky subgraph webhook create $SUBGRAPH_NAME --name raffle-prize-webhook --entity raffle_prize --url $WEBHOOK_URL --secret $WEBHOOK_SECRET
 
 echo "Webhook setup completed!"
 echo "The webhook secret '$WEBHOOK_SECRET' has been applied to all webhooks."

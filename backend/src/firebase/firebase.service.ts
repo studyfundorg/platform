@@ -1,8 +1,8 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as firebase from 'firebase/app';
-import { getFirestore, collection, addDoc, doc, getDoc, updateDoc, Firestore, query, orderBy, getDocs, where } from 'firebase/firestore';
-import { limit as firestoreLimit } from 'firebase/firestore';
+import * as admin from 'firebase-admin';
+import { getFirestore, collection, addDoc, doc, getDoc, updateDoc, Firestore, query, orderBy, getDocs, where } from 'firebase-admin/firestore';
+import { limit as firestoreLimit } from 'firebase-admin/firestore';
 
 @Injectable()
 export class FirebaseService implements OnModuleInit {
@@ -16,17 +16,18 @@ export class FirebaseService implements OnModuleInit {
   }
 
   onModuleInit() {
-    const firebaseConfig = {
-      apiKey: this.configService.get<string>('FIREBASE_API_KEY'),
-      authDomain: this.configService.get<string>('FIREBASE_AUTH_DOMAIN'),
+    const serviceAccount = {
       projectId: this.configService.get<string>('FIREBASE_PROJECT_ID'),
-      storageBucket: this.configService.get<string>('FIREBASE_STORAGE_BUCKET'),
-      messagingSenderId: this.configService.get<string>('FIREBASE_MESSAGING_SENDER_ID'),
-      appId: this.configService.get<string>('FIREBASE_APP_ID'),
+      clientEmail: this.configService.get<string>('FIREBASE_CLIENT_EMAIL'),
+      privateKey: this.configService.get<string>('FIREBASE_PRIVATE_KEY')?.replace(/\\n/g, '\n'),
     };
 
-    // Initialize Firebase
-    const app = firebase.initializeApp(firebaseConfig);
+    // Initialize Firebase Admin
+    const app = admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      storageBucket: this.configService.get<string>('FIREBASE_STORAGE_BUCKET'),
+    });
+    
     this.db = getFirestore(app);
   }
 
