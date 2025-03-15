@@ -99,4 +99,26 @@ export class WebhookController {
       };
     }
   }
+
+  /**
+   * Get a donor's complete history of donations and rewards
+   */
+  @Get('donor/:address/history')
+  async getDonorHistory(
+    @Param('address') address: string,
+    @Query('limit') limit: number = 50,
+    @Query('offset') offset: number = 0
+  ) {
+    try {
+      const history = await this.webhookService.getDonorHistory(address, limit, offset);
+      return { success: true, data: history };
+    } catch (error) {
+      this.logger.error(`Error fetching donor history: ${error.message}`, error.stack);
+      return { 
+        success: false, 
+        message: 'Error fetching donor history', 
+        error: error.message 
+      };
+    }
+  }
 } 

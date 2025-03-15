@@ -59,9 +59,33 @@ export class WebhookService {
     try {
       const docId = await this.firebaseService.saveEvent(collectionName, data);
       this.logger.log(`Inserted new document in ${collectionName} with ID: ${docId}`);
+      
+      // Track in history if it's a donation or reward
+      if (collectionName === 'donations' || collectionName === 'raffle_prizes' || collectionName === 'scholarship_awards') {
+        await this.addToHistory(collectionName, data);
+      }
     } catch (error) {
       this.logger.error(`Error handling insert: ${error.message}`, error.stack);
       throw error;
+    }
+  }
+
+  private async addToHistory(type: string, data: any): Promise<void> {
+    try {
+      const historyEntry = {
+        type,
+        donor: data.donor || data.recipient || data.winner,
+        amount: data.amount,
+        timestamp: data.timestamp || new Date().toISOString(),
+        transactionHash: data.transactionHash,
+        status: data.status || 'completed',
+        metadata: { ...data }
+      };
+
+      await this.firebaseService.saveEvent('donor_history', historyEntry);
+      this.logger.log(`Added ${type} to history for donor ${historyEntry.donor}`);
+    } catch (error) {
+      this.logger.error(`Error adding to history: ${error.message}`, error.stack);
     }
   }
 
@@ -119,5 +143,24 @@ export class WebhookService {
 
   async getDonorInfo(address: string): Promise<any> {
     return this.firebaseService.getDonorInfo(address);
+  }
+
+  async getDonorHistory(address: string, limit: number = 50, offset: number = 0): Promise<any> {
+    return this.firebaseService.getDonorHistory(address, limit, offset);
+  }
+
+  private async handleNewRaffle(raffleData: any): Promise<void> {
+    try {
+      const { id, endTime } = raffleData;
+      if (!id || !endTime) {
+        this.logger.warn('New raffle missing id or endTime, skipping winner selection scheduling');
+        return;
+      }
+
+      await this.raffleService.scheduleWinnerSelection(BigInt(id), Number(endTime));
+      this.logger.log(`Scheduled winner selection for new raffle ${id}`);
+    } catch (error) {
+      this.logger.error(`Error scheduling winner selection for new raffle: ${error.message}`, error.stack);
+    }
   }
 } 

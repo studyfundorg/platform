@@ -184,6 +184,31 @@ export class FirebaseService implements OnModuleInit {
     }
   }
 
+  async getDonorHistory(address: string, limit: number = 50, offset: number = 0): Promise<any[]> {
+    try {
+      const historyRef = this.db.collection('donor_history');
+      const querySnapshot = await historyRef
+        .where('donor', '==', address)
+        .orderBy('timestamp', 'desc')
+        .limit(limit)
+        .offset(offset)
+        .get();
+      
+      const history = [];
+      querySnapshot.forEach((doc) => {
+        history.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+      
+      return history;
+    } catch (error) {
+      console.error('Error fetching donor history:', error);
+      throw error;
+    }
+  }
+
   toNumber(value: any): number {
     if (typeof value === 'string') {
       return parseFloat(value);
