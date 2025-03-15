@@ -62,10 +62,10 @@ export class FirebaseService implements OnModuleInit {
   async updateDocument(collectionName: string, documentId: string, data: any): Promise<void> {
     try {
       const docRef = this.db.collection(collectionName).doc(documentId);
-      await docRef.update({
+      await docRef.set({
         ...data,
         updatedAt: new Date(),
-      });
+      }, { merge: true });
     } catch (error) {
       console.error('Error updating document in Firebase:', error);
       throw error;
