@@ -149,18 +149,18 @@ export class WebhookService {
     return this.firebaseService.getDonorHistory(address, limit, offset);
   }
 
-  private async handleNewRaffle(raffleData: any): Promise<void> {
-    try {
-      const { id, endTime } = raffleData;
-      if (!id || !endTime) {
-        this.logger.warn('New raffle missing id or endTime, skipping winner selection scheduling');
-        return;
-      }
+  // private async handleNewRaffle(raffleData: any): Promise<void> {
+  //   try {
+  //     const { id, endTime } = raffleData;
+  //     if (!id || !endTime) {
+  //       this.logger.warn('New raffle missing id or endTime, skipping winner selection scheduling');
+  //       return;
+  //     }
 
-      await this.raffleService.scheduleWinnerSelection(BigInt(id), Number(endTime));
-      this.logger.log(`Scheduled winner selection for new raffle ${id}`);
-    } catch (error) {
-      this.logger.error(`Error scheduling winner selection for new raffle: ${error.message}`, error.stack);
-    }
-  }
+  //     await this.raffleService.scheduleWinnerSelection(BigInt(id), Number(endTime));
+  //     this.logger.log(`Scheduled winner selection for new raffle ${id}`);
+  //   } catch (error) {
+  //     this.logger.error(`Error scheduling winner selection for new raffle: ${error.message}`, error.stack);
+  //   }
+  // }
 } 
