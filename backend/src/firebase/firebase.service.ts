@@ -1,8 +1,8 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as admin from 'firebase-admin';
-import { getFirestore, collection, addDoc, doc, getDoc, updateDoc, Firestore, query, orderBy, getDocs, where } from 'firebase-admin/firestore';
-import { limit as firestoreLimit } from 'firebase-admin/firestore';
+import { getFirestore } from 'firebase-admin/firestore';
+import type { Firestore } from 'firebase-admin/firestore';
 
 @Injectable()
 export class FirebaseService implements OnModuleInit {
@@ -10,7 +10,6 @@ export class FirebaseService implements OnModuleInit {
 
   constructor(private configService: ConfigService) {}
 
-  // Add getter for Firestore instance
   getFirestore(): Firestore {
     return this.db;
   }
@@ -33,7 +32,7 @@ export class FirebaseService implements OnModuleInit {
 
   async saveEvent(collectionName: string, data: any): Promise<string> {
     try {
-      const docRef = await addDoc(collection(this.db, collectionName), {
+      const docRef = await this.db.collection(collectionName).add({
         ...data,
         timestamp: new Date(),
       });
@@ -46,10 +45,10 @@ export class FirebaseService implements OnModuleInit {
 
   async getDocument(collectionName: string, documentId: string): Promise<any> {
     try {
-      const docRef = doc(this.db, collectionName, documentId);
-      const docSnap = await getDoc(docRef);
+      const docRef = this.db.collection(collectionName).doc(documentId);
+      const docSnap = await docRef.get();
       
-      if (docSnap.exists()) {
+      if (docSnap.exists) {
         return { id: docSnap.id, ...docSnap.data() };
       } else {
         return null;
@@ -62,8 +61,8 @@ export class FirebaseService implements OnModuleInit {
 
   async updateDocument(collectionName: string, documentId: string, data: any): Promise<void> {
     try {
-      const docRef = doc(this.db, collectionName, documentId);
-      await updateDoc(docRef, {
+      const docRef = this.db.collection(collectionName).doc(documentId);
+      await docRef.update({
         ...data,
         updatedAt: new Date(),
       });
@@ -73,18 +72,14 @@ export class FirebaseService implements OnModuleInit {
     }
   }
 
-  // Leaderboard related methods
   async getDonationLeaderboard(limit: number = 10, offset: number = 0): Promise<any[]> {
     try {
-      const leaderboardRef = collection(this.db, 'donationLeaderboard');
+      const leaderboardRef = this.db.collection('donationLeaderboard');
       
-      const q = query(
-        leaderboardRef,
-        orderBy('totalDonated', 'desc'),
-        firestoreLimit(limit + offset)
-      );
-      
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await leaderboardRef
+        .orderBy('totalDonated', 'desc')
+        .limit(limit + offset)
+        .get();
       
       const donors = [];
       let count = 0;
@@ -164,14 +159,12 @@ export class FirebaseService implements OnModuleInit {
         return null;
       }
       
-      const donationsRef = collection(this.db, 'donations');
-      const q = query(
-        donationsRef,
-        where('donor', '==', address),
-        orderBy('timestamp', 'desc')
-      );
+      const donationsRef = this.db.collection('donations');
+      const querySnapshot = await donationsRef
+        .where('donor', '==', address)
+        .orderBy('timestamp', 'desc')
+        .get();
       
-      const querySnapshot = await getDocs(q);
       const donations = [];
       
       querySnapshot.forEach((doc) => {
