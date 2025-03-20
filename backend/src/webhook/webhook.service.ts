@@ -95,7 +95,10 @@ export class WebhookService {
 
   private async handleUpdate(collectionName: string, oldData: any, newData: any): Promise<void> {
     try {
-      if (newData.id) {
+      if (collectionName === 'donors' && newData.address) {
+        await this.firebaseService.updateDocument(collectionName, newData.address, newData);
+        this.logger.log(`Updated donor document for address: ${newData.address}`);
+      } else if (newData.id) {
         await this.firebaseService.updateDocument(collectionName, newData.id, newData);
         this.logger.log(`Updated document in ${collectionName} with ID: ${newData.id}`);
       } else {
