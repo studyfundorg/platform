@@ -10,4 +10,4 @@ import { RaffleModule } from '../raffle/raffle.module';
   providers: [WebhookService],
   exports: [WebhookService],
 })
-export class WebhookModule {} 
+export class WebhookModule {}

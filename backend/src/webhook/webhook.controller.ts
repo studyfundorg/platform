@@ -1,4 +1,14 @@
-import { Controller, Post, Get, Body, Headers, UnauthorizedException, Logger, Query, Param } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Headers,
+  UnauthorizedException,
+  Logger,
+  Query,
+  Param,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { WebhookService } from './webhook.service';
 
@@ -17,8 +27,10 @@ export class WebhookController {
     @Headers('goldsky-webhook-secret') webhookSecret: string,
   ) {
     // Validate the webhook secret
-    const expectedSecret = this.configService.get<string>('GOLDSKY_WEBHOOK_SECRET');
-    
+    const expectedSecret = this.configService.get<string>(
+      'GOLDSKY_WEBHOOK_SECRET',
+    );
+
     if (!webhookSecret || webhookSecret !== expectedSecret) {
       this.logger.warn('Invalid webhook secret received');
       throw new UnauthorizedException('Invalid webhook secret');
@@ -27,18 +39,21 @@ export class WebhookController {
     try {
       // Process the webhook event
       await this.webhookService.processEvent(body);
-      
+
       // Return a success response
       return { success: true, message: 'Webhook processed successfully' };
     } catch (error) {
-      this.logger.error(`Error processing webhook: ${error.message}`, error.stack);
-      
+      this.logger.error(
+        `Error processing webhook: ${error.message}`,
+        error.stack,
+      );
+
       // Return an error response, but with a 200 status code
       // This prevents Goldsky from retrying the webhook
-      return { 
-        success: false, 
-        message: 'Error processing webhook', 
-        error: error.message 
+      return {
+        success: false,
+        message: 'Error processing webhook',
+        error: error.message,
       };
     }
   }
@@ -49,17 +64,23 @@ export class WebhookController {
   @Get('leaderboard')
   async getDonationLeaderboard(
     @Query('limit') limit: number = 10,
-    @Query('offset') offset: number = 0
+    @Query('offset') offset: number = 0,
   ) {
     try {
-      const leaderboard = await this.webhookService.getDonationLeaderboard(limit, offset);
+      const leaderboard = await this.webhookService.getDonationLeaderboard(
+        limit,
+        offset,
+      );
       return { success: true, data: leaderboard };
     } catch (error) {
-      this.logger.error(`Error fetching leaderboard: ${error.message}`, error.stack);
-      return { 
-        success: false, 
-        message: 'Error fetching leaderboard', 
-        error: error.message 
+      this.logger.error(
+        `Error fetching leaderboard: ${error.message}`,
+        error.stack,
+      );
+      return {
+        success: false,
+        message: 'Error fetching leaderboard',
+        error: error.message,
       };
     }
   }
@@ -73,11 +94,14 @@ export class WebhookController {
       const stats = await this.webhookService.getDonationStats();
       return { success: true, data: stats };
     } catch (error) {
-      this.logger.error(`Error fetching donation stats: ${error.message}`, error.stack);
-      return { 
-        success: false, 
-        message: 'Error fetching donation stats', 
-        error: error.message 
+      this.logger.error(
+        `Error fetching donation stats: ${error.message}`,
+        error.stack,
+      );
+      return {
+        success: false,
+        message: 'Error fetching donation stats',
+        error: error.message,
       };
     }
   }
@@ -91,11 +115,14 @@ export class WebhookController {
       const donorInfo = await this.webhookService.getDonorInfo(address);
       return { success: true, data: donorInfo };
     } catch (error) {
-      this.logger.error(`Error fetching donor info: ${error.message}`, error.stack);
-      return { 
-        success: false, 
-        message: 'Error fetching donor info', 
-        error: error.message 
+      this.logger.error(
+        `Error fetching donor info: ${error.message}`,
+        error.stack,
+      );
+      return {
+        success: false,
+        message: 'Error fetching donor info',
+        error: error.message,
       };
     }
   }
@@ -107,18 +134,25 @@ export class WebhookController {
   async getDonorHistory(
     @Param('address') address: string,
     @Query('limit') limit: number = 50,
-    @Query('offset') offset: number = 0
+    @Query('offset') offset: number = 0,
   ) {
     try {
-      const history = await this.webhookService.getDonorHistory(address, limit, offset);
+      const history = await this.webhookService.getDonorHistory(
+        address,
+        limit,
+        offset,
+      );
       return { success: true, data: history };
     } catch (error) {
-      this.logger.error(`Error fetching donor history: ${error.message}`, error.stack);
-      return { 
-        success: false, 
-        message: 'Error fetching donor history', 
-        error: error.message 
+      this.logger.error(
+        `Error fetching donor history: ${error.message}`,
+        error.stack,
+      );
+      return {
+        success: false,
+        message: 'Error fetching donor history',
+        error: error.message,
       };
     }
   }
-} 
+}

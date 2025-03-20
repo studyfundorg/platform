@@ -18,7 +18,9 @@ export class FirebaseService implements OnModuleInit {
     const serviceAccount = {
       projectId: this.configService.get<string>('FIREBASE_PROJECT_ID'),
       clientEmail: this.configService.get<string>('FIREBASE_CLIENT_EMAIL'),
-      privateKey: this.configService.get<string>('FIREBASE_PRIVATE_KEY')?.replace(/\\n/g, '\n'),
+      privateKey: this.configService
+        .get<string>('FIREBASE_PRIVATE_KEY')
+        ?.replace(/\\n/g, '\n'),
     };
 
     // Initialize Firebase Admin
@@ -26,7 +28,7 @@ export class FirebaseService implements OnModuleInit {
       credential: admin.credential.cert(serviceAccount),
       storageBucket: this.configService.get<string>('FIREBASE_STORAGE_BUCKET'),
     });
-    
+
     this.db = getFirestore(app);
   }
 
@@ -47,7 +49,7 @@ export class FirebaseService implements OnModuleInit {
     try {
       const docRef = this.db.collection(collectionName).doc(documentId);
       const docSnap = await docRef.get();
-      
+
       if (docSnap.exists) {
         return { id: docSnap.id, ...docSnap.data() };
       } else {
@@ -59,42 +61,52 @@ export class FirebaseService implements OnModuleInit {
     }
   }
 
-  async updateDocument(collectionName: string, documentId: string, data: any): Promise<void> {
+  async updateDocument(
+    collectionName: string,
+    documentId: string,
+    data: any,
+  ): Promise<void> {
     try {
       const docRef = this.db.collection(collectionName).doc(documentId);
-      await docRef.set({
-        ...data,
-        updatedAt: new Date(),
-      }, { merge: true });
+      await docRef.set(
+        {
+          ...data,
+          updatedAt: new Date(),
+        },
+        { merge: true },
+      );
     } catch (error) {
       console.error('Error updating document in Firebase:', error);
       throw error;
     }
   }
 
-  async getDonationLeaderboard(limit: number = 10, offset: number = 0): Promise<any[]> {
+  async getDonationLeaderboard(
+    limit: number = 10,
+    offset: number = 0,
+  ): Promise<any[]> {
     try {
       const leaderboardRef = this.db.collection('donationLeaderboard');
-      
+
       const querySnapshot = await leaderboardRef
         .orderBy('totalDonated', 'desc')
         .limit(limit + offset)
         .get();
-      
+
       const donors = [];
       let count = 0;
-      
+
       querySnapshot.forEach((doc) => {
         count++;
         if (count > offset) {
           donors.push({
             id: doc.id,
             ...doc.data(),
-            rank: count
+            rank: count,
           });
         }
       });
-      
+
       return donors;
     } catch (error) {
       console.error('Error fetching donation leaderboard:', error);
@@ -102,10 +114,14 @@ export class FirebaseService implements OnModuleInit {
     }
   }
 
-  async updateDonorLeaderboard(donor: string, donationAmount: number, isUpdate: boolean = false): Promise<void> {
+  async updateDonorLeaderboard(
+    donor: string,
+    donationAmount: number,
+    isUpdate: boolean = false,
+  ): Promise<void> {
     try {
       const donorRecord = await this.getDocument('donationLeaderboard', donor);
-      
+
       if (donorRecord) {
         await this.updateDocument('donationLeaderboard', donor, {
           address: donor,
@@ -127,16 +143,19 @@ export class FirebaseService implements OnModuleInit {
     }
   }
 
-  async updateLeaderboardStats(newAmount: number, isUpdate: boolean = false): Promise<void> {
+  async updateLeaderboardStats(
+    newAmount: number,
+    isUpdate: boolean = false,
+  ): Promise<void> {
     try {
       const statsDoc = await this.getDocument('stats', 'donationStats');
-      
+
       const statsData = {
         totalDonated: (statsDoc?.totalDonated || 0) + newAmount,
         donationCount: (statsDoc?.donationCount || 0) + (isUpdate ? 0 : 1),
         lastUpdated: new Date().toISOString(),
       };
-      
+
       if (statsDoc) {
         await this.updateDocument('stats', 'donationStats', statsData);
       } else {
@@ -153,30 +172,33 @@ export class FirebaseService implements OnModuleInit {
 
   async getDonorInfo(address: string): Promise<any> {
     try {
-      const donorRecord = await this.getDocument('donationLeaderboard', address);
-      
+      const donorRecord = await this.getDocument(
+        'donationLeaderboard',
+        address,
+      );
+
       if (!donorRecord) {
         return null;
       }
-      
+
       const donationsRef = this.db.collection('donations');
       const querySnapshot = await donationsRef
         .where('donor', '==', address)
         .orderBy('timestamp', 'desc')
         .get();
-      
+
       const donations = [];
-      
+
       querySnapshot.forEach((doc) => {
         donations.push({
           id: doc.id,
-          ...doc.data()
+          ...doc.data(),
         });
       });
-      
+
       return {
         ...donorRecord,
-        donations
+        donations,
       };
     } catch (error) {
       console.error('Error fetching donor info:', error);
@@ -184,7 +206,11 @@ export class FirebaseService implements OnModuleInit {
     }
   }
 
-  async getDonorHistory(address: string, limit: number = 50, offset: number = 0): Promise<any[]> {
+  async getDonorHistory(
+    address: string,
+    limit: number = 50,
+    offset: number = 0,
+  ): Promise<any[]> {
     try {
       const historyRef = this.db.collection('donor_history');
       const querySnapshot = await historyRef
@@ -193,15 +219,15 @@ export class FirebaseService implements OnModuleInit {
         .limit(limit)
         .offset(offset)
         .get();
-      
+
       const history = [];
       querySnapshot.forEach((doc) => {
         history.push({
           id: doc.id,
-          ...doc.data()
+          ...doc.data(),
         });
       });
-      
+
       return history;
     } catch (error) {
       console.error('Error fetching donor history:', error);
@@ -218,4 +244,4 @@ export class FirebaseService implements OnModuleInit {
     }
     return 0;
   }
-} 
+}

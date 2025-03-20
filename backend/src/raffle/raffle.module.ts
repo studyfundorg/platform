@@ -4,17 +4,13 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JsonRpcProvider, Wallet } from 'ethers';
 
 @Module({
-  imports: [
-    ConfigModule,
-  ],
+  imports: [ConfigModule],
   providers: [
     RaffleService,
     {
       provide: JsonRpcProvider,
       useFactory: (configService: ConfigService) => {
-        return new JsonRpcProvider(
-          configService.get<string>('RPC_URL')
-        );
+        return new JsonRpcProvider(configService.get<string>('RPC_URL'));
       },
       inject: [ConfigService],
     },
@@ -23,7 +19,7 @@ import { JsonRpcProvider, Wallet } from 'ethers';
       useFactory: (provider: JsonRpcProvider, configService: ConfigService) => {
         return new Wallet(
           configService.get<string>('ADMIN_PRIVATE_KEY'),
-          provider
+          provider,
         );
       },
       inject: [JsonRpcProvider, ConfigService],
@@ -31,4 +27,4 @@ import { JsonRpcProvider, Wallet } from 'ethers';
   ],
   exports: [RaffleService],
 })
-export class RaffleModule {} 
+export class RaffleModule {}
