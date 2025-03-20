@@ -56,10 +56,32 @@ export class WebhookService {
 
   private async handleInsert(collectionName: string, data: any): Promise<void> {
     try {
-      const docId = await this.firebaseService.saveEvent(collectionName, data);
-      this.logger.log(
-        `Inserted new document in ${collectionName} with ID: ${docId}`,
-      );
+      let docId: string;
+
+      // For donors collection, check if address already exists
+      if (collectionName === 'donors' && data.address) {
+        const existingDonor = await this.firebaseService.getDocument(collectionName, data.address);
+        if (existingDonor) {
+          // Update existing donor instead of creating new one
+          await this.firebaseService.updateDocument(collectionName, data.address, data);
+          docId = data.address;
+          this.logger.log(
+            `Updated existing donor document for address: ${data.address}`,
+          );
+        } else {
+          // Create new donor if doesn't exist
+          docId = await this.firebaseService.saveEvent(collectionName, data);
+          this.logger.log(
+            `Inserted new donor document with address: ${data.address}`,
+          );
+        }
+      } else {
+        // For other collections, proceed with normal insert
+        docId = await this.firebaseService.saveEvent(collectionName, data);
+        this.logger.log(
+          `Inserted new document in ${collectionName} with ID: ${docId}`,
+        );
+      }
 
       // Track in history if it's a donation or reward
       if (
