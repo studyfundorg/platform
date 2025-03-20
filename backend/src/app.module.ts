@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { WebhookModule } from './webhook/webhook.module';
 import { FirebaseModule } from './firebase/firebase.module';
+import { RaffleModule } from './raffle/raffle.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { FirebaseModule } from './firebase/firebase.module';
     }),
     WebhookModule,
     FirebaseModule,
+    RaffleModule,
   ],
   controllers: [AppController],
   providers: [AppService],

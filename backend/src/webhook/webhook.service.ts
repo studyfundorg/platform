@@ -1,11 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { FirebaseService } from '../firebase/firebase.service';
+import { RaffleService } from '../raffle/raffle.service';
 
 @Injectable()
 export class WebhookService {
   private readonly logger = new Logger(WebhookService.name);
 
-  constructor(private readonly firebaseService: FirebaseService) {}
+  constructor(
+    private readonly firebaseService: FirebaseService,
+    private readonly raffleService: RaffleService,
+  ) {}
 
   async processEvent(eventData: any): Promise<void> {
     try {
@@ -17,11 +21,6 @@ export class WebhookService {
       switch (op) {
         case 'INSERT':
           await this.handleInsert(collectionName, data.new);
-          
-          if (collectionName === 'raffles') {
-            // Schedule winner selection for new raffle
-            await this.handleNewRaffle(data.new);
-          }
           break;
         case 'UPDATE':
           await this.handleUpdate(collectionName, data.old, data.new);
@@ -98,6 +97,11 @@ export class WebhookService {
       } else if (newData.id) {
         await this.firebaseService.updateDocument(collectionName, newData.id, newData);
         this.logger.log(`Updated document in ${collectionName} with ID: ${newData.id}`);
+
+        // Handle raffle completion
+        if (collectionName === 'raffles' && newData.completed && !oldData.completed) {
+          await this.raffleService.processWinnerSelection(newData.id.toString());
+        }
       } else {
         const docId = await this.firebaseService.saveEvent(collectionName, newData);
         this.logger.log(`Created new document in ${collectionName} with ID: ${docId} during update`);
@@ -152,19 +156,4 @@ export class WebhookService {
   async getDonorHistory(address: string, limit: number = 50, offset: number = 0): Promise<any> {
     return this.firebaseService.getDonorHistory(address, limit, offset);
   }
-
-  // private async handleNewRaffle(raffleData: any): Promise<void> {
-  //   try {
-  //     const { id, endTime } = raffleData;
-  //     if (!id || !endTime) {
-  //       this.logger.warn('New raffle missing id or endTime, skipping winner selection scheduling');
-  //       return;
-  //     }
-
-  //     await this.raffleService.scheduleWinnerSelection(BigInt(id), Number(endTime));
-  //     this.logger.log(`Scheduled winner selection for new raffle ${id}`);
-  //   } catch (error) {
-  //     this.logger.error(`Error scheduling winner selection for new raffle: ${error.message}`, error.stack);
-  //   }
-  // }
 } 
