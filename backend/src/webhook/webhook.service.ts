@@ -18,16 +18,13 @@ export class WebhookService {
         case 'INSERT':
           await this.handleInsert(collectionName, data.new);
           
-          if (collectionName === 'donations') {
-            await this.updateDonationLeaderboard(data.new);
+          if (collectionName === 'raffles') {
+            // Schedule winner selection for new raffle
+            await this.handleNewRaffle(data.new);
           }
           break;
         case 'UPDATE':
           await this.handleUpdate(collectionName, data.old, data.new);
-          
-          if (collectionName === 'donations') {
-            await this.updateDonationLeaderboard(data.new, data.old);
-          }
           break;
         case 'DELETE':
           await this.handleDelete(collectionName, data.old);
