@@ -12,9 +12,13 @@ export class RaffleProcessor {
   @Process('processWinnerSelection')
   async handleWinnerSelection(job: Job<{ raffleId: string }>) {
     try {
-      this.logger.log(`Processing winner selection for raffle ${job.data.raffleId}`);
+      this.logger.log(
+        `Processing winner selection for raffle ${job.data.raffleId}`,
+      );
       await this.raffleService.processWinnerSelection(job.data.raffleId);
-      this.logger.log(`Successfully processed winner selection for raffle ${job.data.raffleId}`);
+      this.logger.log(
+        `Successfully processed winner selection for raffle ${job.data.raffleId}`,
+      );
     } catch (error) {
       this.logger.error(
         `Error processing winner selection for raffle ${job.data.raffleId}:`,
@@ -23,4 +27,4 @@ export class RaffleProcessor {
       throw error;
     }
   }
-} 
+}

@@ -46,14 +46,11 @@ export class WebhookService {
           });
       }
     } catch (error) {
-      this.logger.error(
-        `Error processing webhook event:`,
-        {
-          error: error.message,
-          stack: error.stack,
-          eventData,
-        }
-      );
+      this.logger.error(`Error processing webhook event:`, {
+        error: error.message,
+        stack: error.stack,
+        eventData,
+      });
       throw error;
     }
   }
@@ -69,8 +66,9 @@ export class WebhookService {
       donor: 'donors',
     };
 
-    const collectionName = entityToCollectionMap[entity.toLowerCase()] || entity.toLowerCase();
-    
+    const collectionName =
+      entityToCollectionMap[entity.toLowerCase()] || entity.toLowerCase();
+
     this.logger.debug(`Mapped entity to collection:`, {
       entity,
       collectionName,
@@ -90,7 +88,10 @@ export class WebhookService {
 
       // For donors collection, check if address already exists
       if (collectionName === 'donors' && data.address) {
-        const existingDonor = await this.firebaseService.getDocument(collectionName, data.address);
+        const existingDonor = await this.firebaseService.getDocument(
+          collectionName,
+          data.address,
+        );
         this.logger.debug(`Checking existing donor:`, {
           address: data.address,
           exists: !!existingDonor,
@@ -98,38 +99,33 @@ export class WebhookService {
 
         if (existingDonor) {
           // Update existing donor instead of creating new one
-          await this.firebaseService.updateDocument(collectionName, data.address, data);
-          docId = data.address;
-          this.logger.log(
-            `Updated existing donor document:`,
-            {
-              address: data.address,
-              timestamp: new Date().toISOString(),
-            }
+          await this.firebaseService.updateDocument(
+            collectionName,
+            data.address,
+            data,
           );
+          docId = data.address;
+          this.logger.log(`Updated existing donor document:`, {
+            address: data.address,
+            timestamp: new Date().toISOString(),
+          });
         } else {
           // Create new donor if doesn't exist
           docId = await this.firebaseService.saveEvent(collectionName, data);
-          this.logger.log(
-            `Created new donor document:`,
-            {
-              address: data.address,
-              docId,
-              timestamp: new Date().toISOString(),
-            }
-          );
+          this.logger.log(`Created new donor document:`, {
+            address: data.address,
+            docId,
+            timestamp: new Date().toISOString(),
+          });
         }
       } else {
         // For other collections, proceed with normal insert
         docId = await this.firebaseService.saveEvent(collectionName, data);
-        this.logger.log(
-          `Created new document:`,
-          {
-            collection: collectionName,
-            docId,
-            timestamp: new Date().toISOString(),
-          }
-        );
+        this.logger.log(`Created new document:`, {
+          collection: collectionName,
+          docId,
+          timestamp: new Date().toISOString(),
+        });
       }
 
       // Track in history if it's a donation or reward
@@ -141,15 +137,12 @@ export class WebhookService {
         await this.addToHistory(collectionName, data);
       }
     } catch (error) {
-      this.logger.error(
-        `Error handling insert:`,
-        {
-          error: error.message,
-          stack: error.stack,
-          collection: collectionName,
-          data,
-        }
-      );
+      this.logger.error(`Error handling insert:`, {
+        error: error.message,
+        stack: error.stack,
+        collection: collectionName,
+        data,
+      });
       throw error;
     }
   }
@@ -174,36 +167,27 @@ export class WebhookService {
       });
 
       if (!historyEntry.transactionHash) {
-        this.logger.warn(
-          `Missing transaction hash for history entry:`,
-          {
-            type,
-            donor: historyEntry.donor,
-            amount: historyEntry.amount,
-          }
-        );
-      }
-
-      await this.firebaseService.saveEvent('donor_history', historyEntry);
-      this.logger.log(
-        `Added to history:`,
-        {
+        this.logger.warn(`Missing transaction hash for history entry:`, {
           type,
           donor: historyEntry.donor,
           amount: historyEntry.amount,
-          timestamp: historyEntry.timestamp,
-        }
-      );
+        });
+      }
+
+      await this.firebaseService.saveEvent('donor_history', historyEntry);
+      this.logger.log(`Added to history:`, {
+        type,
+        donor: historyEntry.donor,
+        amount: historyEntry.amount,
+        timestamp: historyEntry.timestamp,
+      });
     } catch (error) {
-      this.logger.error(
-        `Error adding to history:`,
-        {
-          error: error.message,
-          stack: error.stack,
-          type,
-          data,
-        }
-      );
+      this.logger.error(`Error adding to history:`, {
+        error: error.message,
+        stack: error.stack,
+        type,
+        data,
+      });
     }
   }
 
@@ -225,65 +209,50 @@ export class WebhookService {
           newData.address,
           newData,
         );
-        this.logger.log(
-          `Updated donor document:`,
-          {
-            address: newData.address,
-            timestamp: new Date().toISOString(),
-          }
-        );
+        this.logger.log(`Updated donor document:`, {
+          address: newData.address,
+          timestamp: new Date().toISOString(),
+        });
       } else if (newData.id) {
         await this.firebaseService.updateDocument(
           collectionName,
           newData.id,
           newData,
         );
-        this.logger.log(
-          `Updated document:`,
-          {
-            collection: collectionName,
-            id: newData.id,
-            timestamp: new Date().toISOString(),
-          }
-        );
+        this.logger.log(`Updated document:`, {
+          collection: collectionName,
+          id: newData.id,
+          timestamp: new Date().toISOString(),
+        });
       } else {
         const docId = await this.firebaseService.saveEvent(
           collectionName,
           newData,
         );
-        this.logger.log(
-          `Created new document during update:`,
-          {
-            collection: collectionName,
-            docId,
-            timestamp: new Date().toISOString(),
-          }
-        );
+        this.logger.log(`Created new document during update:`, {
+          collection: collectionName,
+          docId,
+          timestamp: new Date().toISOString(),
+        });
       }
     } catch (error) {
-      this.logger.error(
-        `Error handling update:`,
-        {
-          error: error.message,
-          stack: error.stack,
-          collection: collectionName,
-          oldData,
-          newData,
-        }
-      );
+      this.logger.error(`Error handling update:`, {
+        error: error.message,
+        stack: error.stack,
+        collection: collectionName,
+        oldData,
+        newData,
+      });
       throw error;
     }
   }
 
   private async handleDelete(collectionName: string, data: any): Promise<void> {
-    this.logger.log(
-      `Processing delete event:`,
-      {
-        collection: collectionName,
-        data,
-        timestamp: new Date().toISOString(),
-      }
-    );
+    this.logger.log(`Processing delete event:`, {
+      collection: collectionName,
+      data,
+      timestamp: new Date().toISOString(),
+    });
   }
 
   async getDonationLeaderboard(
