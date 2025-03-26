@@ -13,10 +13,20 @@ export class WebhookService {
 
   async processEvent(eventData: any): Promise<void> {
     try {
-      this.logger.log(`Processing event: ${JSON.stringify(eventData)}`);
+      this.logger.debug(`Received webhook event:`, {
+        operation: eventData.op,
+        entity: eventData.entity,
+        timestamp: new Date().toISOString(),
+      });
 
       const { op, data, entity } = eventData;
       const collectionName = this.getCollectionName(entity);
+
+      this.logger.debug(`Processing event for collection:`, {
+        collectionName,
+        operation: op,
+        entity,
+      });
 
       switch (op) {
         case 'INSERT':
@@ -29,12 +39,20 @@ export class WebhookService {
           await this.handleDelete(collectionName, data.old);
           break;
         default:
-          this.logger.warn(`Unknown operation type: ${op}`);
+          this.logger.warn(`Unknown operation type received:`, {
+            operation: op,
+            entity,
+            data,
+          });
       }
     } catch (error) {
       this.logger.error(
-        `Error processing event: ${error.message}`,
-        error.stack,
+        `Error processing webhook event:`,
+        {
+          error: error.message,
+          stack: error.stack,
+          eventData,
+        }
       );
       throw error;
     }
@@ -51,35 +69,66 @@ export class WebhookService {
       donor: 'donors',
     };
 
-    return entityToCollectionMap[entity.toLowerCase()] || entity.toLowerCase();
+    const collectionName = entityToCollectionMap[entity.toLowerCase()] || entity.toLowerCase();
+    
+    this.logger.debug(`Mapped entity to collection:`, {
+      entity,
+      collectionName,
+    });
+
+    return collectionName;
   }
 
   private async handleInsert(collectionName: string, data: any): Promise<void> {
     try {
+      this.logger.debug(`Processing insert for ${collectionName}:`, {
+        data,
+        timestamp: new Date().toISOString(),
+      });
+
       let docId: string;
 
       // For donors collection, check if address already exists
       if (collectionName === 'donors' && data.address) {
         const existingDonor = await this.firebaseService.getDocument(collectionName, data.address);
+        this.logger.debug(`Checking existing donor:`, {
+          address: data.address,
+          exists: !!existingDonor,
+        });
+
         if (existingDonor) {
           // Update existing donor instead of creating new one
           await this.firebaseService.updateDocument(collectionName, data.address, data);
           docId = data.address;
           this.logger.log(
-            `Updated existing donor document for address: ${data.address}`,
+            `Updated existing donor document:`,
+            {
+              address: data.address,
+              timestamp: new Date().toISOString(),
+            }
           );
         } else {
           // Create new donor if doesn't exist
           docId = await this.firebaseService.saveEvent(collectionName, data);
           this.logger.log(
-            `Inserted new donor document with address: ${data.address}`,
+            `Created new donor document:`,
+            {
+              address: data.address,
+              docId,
+              timestamp: new Date().toISOString(),
+            }
           );
         }
       } else {
         // For other collections, proceed with normal insert
         docId = await this.firebaseService.saveEvent(collectionName, data);
         this.logger.log(
-          `Inserted new document in ${collectionName} with ID: ${docId}`,
+          `Created new document:`,
+          {
+            collection: collectionName,
+            docId,
+            timestamp: new Date().toISOString(),
+          }
         );
       }
 
@@ -92,7 +141,15 @@ export class WebhookService {
         await this.addToHistory(collectionName, data);
       }
     } catch (error) {
-      this.logger.error(`Error handling insert: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error handling insert:`,
+        {
+          error: error.message,
+          stack: error.stack,
+          collection: collectionName,
+          data,
+        }
+      );
       throw error;
     }
   }
@@ -109,20 +166,43 @@ export class WebhookService {
         metadata: { ...data },
       };
 
+      this.logger.debug(`Adding to history:`, {
+        type,
+        donor: historyEntry.donor,
+        amount: historyEntry.amount,
+        transactionHash: historyEntry.transactionHash,
+      });
+
       if (!historyEntry.transactionHash) {
         this.logger.warn(
-          `Missing transaction hash for ${type} history entry: ${JSON.stringify(data)}`,
+          `Missing transaction hash for history entry:`,
+          {
+            type,
+            donor: historyEntry.donor,
+            amount: historyEntry.amount,
+          }
         );
       }
 
       await this.firebaseService.saveEvent('donor_history', historyEntry);
       this.logger.log(
-        `Added ${type} to history for donor ${historyEntry.donor}`,
+        `Added to history:`,
+        {
+          type,
+          donor: historyEntry.donor,
+          amount: historyEntry.amount,
+          timestamp: historyEntry.timestamp,
+        }
       );
     } catch (error) {
       this.logger.error(
-        `Error adding to history: ${error.message}`,
-        error.stack,
+        `Error adding to history:`,
+        {
+          error: error.message,
+          stack: error.stack,
+          type,
+          data,
+        }
       );
     }
   }
@@ -133,6 +213,12 @@ export class WebhookService {
     newData: any,
   ): Promise<void> {
     try {
+      this.logger.debug(`Processing update for ${collectionName}:`, {
+        oldData,
+        newData,
+        timestamp: new Date().toISOString(),
+      });
+
       if (collectionName === 'donors' && newData.address) {
         await this.firebaseService.updateDocument(
           collectionName,
@@ -140,7 +226,11 @@ export class WebhookService {
           newData,
         );
         this.logger.log(
-          `Updated donor document for address: ${newData.address}`,
+          `Updated donor document:`,
+          {
+            address: newData.address,
+            timestamp: new Date().toISOString(),
+          }
         );
       } else if (newData.id) {
         await this.firebaseService.updateDocument(
@@ -149,37 +239,50 @@ export class WebhookService {
           newData,
         );
         this.logger.log(
-          `Updated document in ${collectionName} with ID: ${newData.id}`,
+          `Updated document:`,
+          {
+            collection: collectionName,
+            id: newData.id,
+            timestamp: new Date().toISOString(),
+          }
         );
-
-        // Handle raffle completion
-        if (
-          collectionName === 'raffles' &&
-          newData.completed &&
-          !oldData.completed
-        ) {
-          await this.raffleService.processWinnerSelection(
-            newData.id.toString(),
-          );
-        }
       } else {
         const docId = await this.firebaseService.saveEvent(
           collectionName,
           newData,
         );
         this.logger.log(
-          `Created new document in ${collectionName} with ID: ${docId} during update`,
+          `Created new document during update:`,
+          {
+            collection: collectionName,
+            docId,
+            timestamp: new Date().toISOString(),
+          }
         );
       }
     } catch (error) {
-      this.logger.error(`Error handling update: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error handling update:`,
+        {
+          error: error.message,
+          stack: error.stack,
+          collection: collectionName,
+          oldData,
+          newData,
+        }
+      );
       throw error;
     }
   }
 
   private async handleDelete(collectionName: string, data: any): Promise<void> {
     this.logger.log(
-      `Delete event received for ${collectionName} with data: ${JSON.stringify(data)}`,
+      `Processing delete event:`,
+      {
+        collection: collectionName,
+        data,
+        timestamp: new Date().toISOString(),
+      }
     );
   }
 
@@ -190,9 +293,20 @@ export class WebhookService {
     try {
       const { donor, amount } = newDonation;
 
+      this.logger.debug(`Updating donation leaderboard:`, {
+        donor,
+        amount,
+        isUpdate: !!oldDonation,
+        timestamp: new Date().toISOString(),
+      });
+
       if (!donor || !amount) {
         this.logger.warn(
-          'Donation missing donor or amount, skipping leaderboard update',
+          `Missing required data for leaderboard update:`,
+          {
+            donor,
+            amount,
+          }
         );
         return;
       }
@@ -210,11 +324,24 @@ export class WebhookService {
         isUpdate,
       );
 
-      this.logger.log(`Updated leaderboard for donor ${donor}`);
+      this.logger.log(
+        `Updated leaderboard:`,
+        {
+          donor,
+          amount: donationAmount,
+          isUpdate,
+          timestamp: new Date().toISOString(),
+        }
+      );
     } catch (error) {
       this.logger.error(
-        `Error updating donation leaderboard: ${error.message}`,
-        error.stack,
+        `Error updating donation leaderboard:`,
+        {
+          error: error.message,
+          stack: error.stack,
+          donor,
+          amount,
+        }
       );
     }
   }
@@ -223,10 +350,18 @@ export class WebhookService {
     limit: number = 10,
     offset: number = 0,
   ): Promise<any[]> {
+    this.logger.debug(`Fetching donation leaderboard:`, {
+      limit,
+      offset,
+      timestamp: new Date().toISOString(),
+    });
     return this.firebaseService.getDonationLeaderboard(limit, offset);
   }
 
   async getDonationStats(): Promise<any> {
+    this.logger.debug(`Fetching donation stats:`, {
+      timestamp: new Date().toISOString(),
+    });
     return (
       this.firebaseService.getDocument('stats', 'donationStats') || {
         totalDonated: 0,
@@ -237,6 +372,10 @@ export class WebhookService {
   }
 
   async getDonorInfo(address: string): Promise<any> {
+    this.logger.debug(`Fetching donor info:`, {
+      address,
+      timestamp: new Date().toISOString(),
+    });
     return this.firebaseService.getDonorInfo(address);
   }
 
@@ -245,6 +384,12 @@ export class WebhookService {
     limit: number = 50,
     offset: number = 0,
   ): Promise<any> {
+    this.logger.debug(`Fetching donor history:`, {
+      address,
+      limit,
+      offset,
+      timestamp: new Date().toISOString(),
+    });
     return this.firebaseService.getDonorHistory(address, limit, offset);
   }
 }
