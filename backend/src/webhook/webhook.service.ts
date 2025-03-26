@@ -286,66 +286,6 @@ export class WebhookService {
     );
   }
 
-  private async updateDonationLeaderboard(
-    newDonation: any,
-    oldDonation?: any,
-  ): Promise<void> {
-    try {
-      const { donor, amount } = newDonation;
-
-      this.logger.debug(`Updating donation leaderboard:`, {
-        donor,
-        amount,
-        isUpdate: !!oldDonation,
-        timestamp: new Date().toISOString(),
-      });
-
-      if (!donor || !amount) {
-        this.logger.warn(
-          `Missing required data for leaderboard update:`,
-          {
-            donor,
-            amount,
-          }
-        );
-        return;
-      }
-
-      const donationAmount = this.firebaseService.toNumber(amount);
-      const isUpdate = !!oldDonation;
-
-      await this.firebaseService.updateDonorLeaderboard(
-        donor,
-        donationAmount,
-        isUpdate,
-      );
-      await this.firebaseService.updateLeaderboardStats(
-        donationAmount,
-        isUpdate,
-      );
-
-      this.logger.log(
-        `Updated leaderboard:`,
-        {
-          donor,
-          amount: donationAmount,
-          isUpdate,
-          timestamp: new Date().toISOString(),
-        }
-      );
-    } catch (error) {
-      this.logger.error(
-        `Error updating donation leaderboard:`,
-        {
-          error: error.message,
-          stack: error.stack,
-          donor,
-          amount,
-        }
-      );
-    }
-  }
-
   async getDonationLeaderboard(
     limit: number = 10,
     offset: number = 0,
