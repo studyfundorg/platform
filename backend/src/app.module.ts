@@ -16,6 +16,7 @@ import { RaffleModule } from './raffle/raffle.module';
       redis: {
         host: process.env.REDIS_HOST || 'localhost',
         port: parseInt(process.env.REDIS_PORT || '6379'),
+        password: process.env.REDIS_PASSWORD || '',
         db: parseInt(process.env.REDIS_DB || '0'),
       },
       prefix: process.env.QUEUE_PREFIX || 'studyfund:bull',
