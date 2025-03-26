@@ -9,7 +9,17 @@ fi
 
 WEBHOOK_URL=$1
 WEBHOOK_SECRET=$2
-SUBGRAPH_NAME="studyfund/v1"
+SUBGRAPH_NAME="studyfund/v3"
+
+# Delete existing webhooks
+echo "Deleting existing webhooks..."
+goldsky subgraph webhook delete donation-webhook -f || true
+goldsky subgraph webhook delete raffle-webhook -f || true
+goldsky subgraph webhook delete scholarship-webhook -f || true
+goldsky subgraph webhook delete donor-webhook -f || true
+goldsky subgraph webhook delete raffle-prize-webhook -f || true
+goldsky subgraph webhook delete history-webhook -f || true
+goldsky subgraph webhook delete claimed-prize-webhook -f || true
 
 # Create webhooks for each entity
 echo "Creating webhook for donations..."
@@ -26,6 +36,12 @@ goldsky subgraph webhook create $SUBGRAPH_NAME --name donor-webhook --entity don
 
 echo "Creating webhook for raffle prizes..."
 goldsky subgraph webhook create $SUBGRAPH_NAME --name raffle-prize-webhook --entity raffle_prize --url $WEBHOOK_URL --secret $WEBHOOK_SECRET
+
+echo "Creating webhook for history events..."
+goldsky subgraph webhook create $SUBGRAPH_NAME --name history-webhook --entity history --url $WEBHOOK_URL --secret $WEBHOOK_SECRET
+
+echo "Creating webhook for claimed prizes..."
+goldsky subgraph webhook create $SUBGRAPH_NAME --name claimed-prize-webhook --entity claimed_prize --url $WEBHOOK_URL --secret $WEBHOOK_SECRET
 
 echo "Webhook setup completed!"
 echo "The webhook secret '$WEBHOOK_SECRET' has been applied to all webhooks."

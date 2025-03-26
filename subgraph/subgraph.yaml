@@ -32,4 +32,6 @@ dataSources:
           handler: handleScholarshipAwarded
         - event: PrizesClaimed(indexed uint256,indexed address,uint256)
           handler: handlePrizesClaimed
+        - event: RunnerUpsSelected(indexed uint256,address[])
+          handler: handleRunnerUpsSelected
       file: ./src/study-fund.ts 

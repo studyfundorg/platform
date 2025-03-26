@@ -1,6 +1,6 @@
 # StudyFund Subgraph
 
-This subgraph indexes events from the StudyFund smart contract, including donations, raffles, and scholarships.
+This subgraph indexes events from the StudyFund smart contract, including donations, raffles, and scholarships. It provides a comprehensive history of all donor activities including donations, rewards, and scholarships.
 
 ## Prerequisites
 
@@ -41,6 +41,25 @@ dataSources:
       abi: StudyFund
       startBlock: 33534812
 ```
+
+## Entities
+
+The subgraph tracks the following entities:
+
+- `Donor`: Tracks donor information including total donations, rewards, and entries
+- `Donation`: Records individual donations with amount and entries
+- `Raffle`: Manages raffle information including winners, runner-ups, and prizes
+- `RaffleEntry`: Tracks raffle entries for each donor
+- `RafflePrize`: Records prize information for raffle winners
+- `Scholarship`: Tracks scholarship awards
+- `History`: Comprehensive activity history for each donor including:
+  - Donations
+  - Rewards
+  - Scholarships
+  - Transaction timestamps
+  - Amounts
+  - References to related entities
+- `ClaimedPrize`: Records claimed prizes
 
 ## Deployment
 
@@ -87,7 +106,7 @@ We've provided a convenient script to set up webhooks for all entities in your s
 ./setup-webhooks.sh https://your-backend-url.com/webhook
 ```
 
-This script will create webhooks for donations, raffles, scholarships, donors, and raffle prizes.
+This script will create webhooks for donations, raffles, scholarships, donors, raffle prizes, and history events.
 
 ### Option 2: Manual webhook setup
 
@@ -102,6 +121,9 @@ goldsky subgraph webhook create studyfund/v1 --name raffle-webhook --entity raff
 
 # Create webhook for scholarships
 goldsky subgraph webhook create studyfund/v1 --name scholarship-webhook --entity scholarship --url https://your-backend-url.com/webhook
+
+# Create webhook for history events
+goldsky subgraph webhook create studyfund/v1 --name history-webhook --entity history --url https://your-backend-url.com/webhook
 ```
 
 Make sure to update your backend's environment variables with the webhook secret provided by Goldsky when creating the webhook. 

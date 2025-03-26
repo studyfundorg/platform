@@ -3,9 +3,10 @@ import {
   DonationReceived,
   RaffleCompleted,
   ScholarshipAwarded,
-  PrizesClaimed
+  PrizesClaimed,
+  RunnerUpsSelected
 } from '../generated/StudyFund/StudyFund';
-import { Donor, Donation, Raffle, RafflePrize, Scholarship } from '../generated/schema';
+import { Donor, Donation, Raffle, RafflePrize, Scholarship, History, ClaimedPrize } from '../generated/schema';
 
 export function handleDonationReceived(event: DonationReceived): void {
   // Get or create donor
@@ -17,6 +18,8 @@ export function handleDonationReceived(event: DonationReceived): void {
     donor.address = donorId;
     donor.totalDonated = BigInt.fromI32(0);
     donor.entries = BigInt.fromI32(0);
+    donor.totalRewards = BigInt.fromI32(0);
+    donor.unclaimedRewards = BigInt.fromI32(0);
     donor.createdAt = event.block.timestamp;
     donor.updatedAt = event.block.timestamp;
   }
@@ -37,6 +40,17 @@ export function handleDonationReceived(event: DonationReceived): void {
   donation.blockNumber = event.block.number;
   donation.transactionHash = event.transaction.hash.toHexString();
   donation.save();
+
+  // Create history entry
+  let historyId = event.transaction.hash.toHexString() + '-' + event.logIndex.toString() + '-history';
+  let history = new History(historyId);
+  history.donor = donorId;
+  history.timestamp = event.block.timestamp;
+  history.donation = donationId;
+  history.transactionHash = event.transaction.hash.toHexString();
+  history.type = "Donation";
+  history.amount = event.params.amount;
+  history.save();
 }
 
 export function handleRaffleCompleted(event: RaffleCompleted): void {
@@ -65,15 +79,34 @@ export function handleRaffleCompleted(event: RaffleCompleted): void {
     winnerAddresses.push(winnerAddress);
     
     // Create raffle prize
-    let prizeId = raffleId + '-' + winnerAddress;
+    let prizeId = raffleId + '-' + i.toString() + '-' + winnerAddress;
     let prize = new RafflePrize(prizeId);
     prize.raffle = raffleId;
     prize.winner = winnerAddress;
     prize.amount = prizes[i];
-    prize.claimed = false;
+    prize.transactionHash = event.transaction.hash.toHexString();
     prize.save();
     
     totalPrizePool = totalPrizePool.plus(prizes[i]);
+
+    // Create history entry
+    let historyId = event.transaction.hash.toHexString() + '-' + i.toString() + '-' + raffleId + '-history';
+    let history = new History(historyId);
+    history.donor = winnerAddress;
+    history.timestamp = event.block.timestamp;
+    history.reward = prizeId;
+    history.raffle = raffleId;
+    history.transactionHash = event.transaction.hash.toHexString();
+    history.type = "Reward";
+    history.amount = prizes[i];
+    history.save();
+
+    const donor = Donor.load(winnerAddress);
+    if (donor) {
+      donor.totalRewards = donor.totalRewards.plus(prizes[i]);
+      donor.unclaimedRewards = donor.unclaimedRewards.plus(prizes[i]);
+      donor.save();
+    }
   }
   
   raffle.winners = winnerAddresses;
@@ -99,12 +132,34 @@ export function handleScholarshipAwarded(event: ScholarshipAwarded): void {
 export function handlePrizesClaimed(event: PrizesClaimed): void {
   let raffleId = event.params.raffleId.toString();
   let winnerAddress = event.params.winner.toHexString();
-  let prizeId = raffleId + '-' + winnerAddress;
+
+  const claimedPrizeId = winnerAddress + '-' + raffleId;
+  let claimedPrize = ClaimedPrize.load(claimedPrizeId);
+  if (!claimedPrize) {
+    claimedPrize = new ClaimedPrize(claimedPrizeId);
+    claimedPrize.donor = winnerAddress;
+    claimedPrize.amount = event.params.amount;
+    claimedPrize.timestamp = event.block.timestamp;
+    claimedPrize.transactionHash = event.transaction.hash.toHexString();
+    claimedPrize.save();
+  }
   
-  let prize = RafflePrize.load(prizeId);
-  if (prize) {
-    prize.claimed = true;
-    prize.claimedAt = event.block.timestamp;
-    prize.save();
+  const donor = Donor.load(winnerAddress);
+  if (donor) {
+    donor.unclaimedRewards = donor.unclaimedRewards.minus(event.params.amount);
+    donor.save();
+  }
+  
+  
+}
+
+export function handleRunnerUpsSelected(event: RunnerUpsSelected): void {
+  let raffleId = event.params.raffleId.toString();
+  let raffle = Raffle.load(raffleId);
+  
+  if (raffle) {
+    let runnerUps = event.params.runnerUps.map<string>(address => address.toHexString());
+    raffle.runnerUps = runnerUps;
+    raffle.save();
   }
 } 

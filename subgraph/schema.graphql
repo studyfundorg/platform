@@ -2,9 +2,12 @@ type Donor @entity {
   id: ID!
   address: String!
   totalDonated: BigInt!
+  unclaimedRewards: BigInt!
+  totalRewards: BigInt!
   entries: BigInt!
   donations: [Donation!]! @derivedFrom(field: "donor")
   raffleEntries: [RaffleEntry!]! @derivedFrom(field: "donor")
+  history: [History!]! @derivedFrom(field: "donor")
   createdAt: BigInt!
   updatedAt: BigInt!
 }
@@ -26,6 +29,7 @@ type Raffle @entity {
   prizePool: BigInt!
   donations: BigInt!
   winners: [String!]
+  runnerUps: [String!]
   completed: Boolean!
   entries: [RaffleEntry!]! @derivedFrom(field: "raffle")
   prizes: [RafflePrize!]! @derivedFrom(field: "raffle")
@@ -45,8 +49,7 @@ type RafflePrize @entity {
   raffle: Raffle!
   winner: String!
   amount: BigInt!
-  claimed: Boolean!
-  claimedAt: BigInt
+  transactionHash: String
 }
 
 type Scholarship @entity {
@@ -56,4 +59,30 @@ type Scholarship @entity {
   timestamp: BigInt!
   blockNumber: BigInt!
   transactionHash: String!
-} 
+}
+
+type History @entity {
+  id: ID!
+  donor: Donor!
+  timestamp: BigInt!
+  donation: Donation
+  reward: RafflePrize
+  raffle: Raffle
+  transactionHash: String
+  type: HistoryType!
+  amount: BigInt!
+}
+
+type ClaimedPrize @entity {
+  id: ID!
+  donor: Donor!
+  amount: BigInt!
+  timestamp: BigInt!
+  transactionHash: String
+}
+
+enum HistoryType {
+  Reward
+  Scholarship
+  Donation
+}
