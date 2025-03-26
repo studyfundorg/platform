@@ -45,4 +45,10 @@ goldsky subgraph webhook create $SUBGRAPH_NAME --name claimed-prize-webhook --en
 
 echo "Webhook setup completed!"
 echo "The webhook secret '$WEBHOOK_SECRET' has been applied to all webhooks."
-echo "Make sure to update your backend's environment variables with this webhook secret." 
+echo "Make sure to update your backend's environment variables with this webhook secret."
+echo ""
+echo "To process historical data:"
+echo "1. Go to https://app.goldsky.com/dashboard"
+echo "2. Select your subgraph 'studyfund/v3'"
+echo "3. Go to the 'Webhooks' tab"
+echo "4. For each webhook, click on the three dots menu and select 'Process Historical Data'" 

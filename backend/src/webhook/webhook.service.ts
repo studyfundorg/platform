@@ -127,15 +127,6 @@ export class WebhookService {
           timestamp: new Date().toISOString(),
         });
       }
-
-      // Track in history if it's a donation or reward
-      if (
-        collectionName === 'donations' ||
-        collectionName === 'raffle_prizes' ||
-        collectionName === 'scholarship_awards'
-      ) {
-        await this.addToHistory(collectionName, data);
-      }
     } catch (error) {
       this.logger.error(`Error handling insert:`, {
         error: error.message,
@@ -144,50 +135,6 @@ export class WebhookService {
         data,
       });
       throw error;
-    }
-  }
-
-  private async addToHistory(type: string, data: any): Promise<void> {
-    try {
-      const historyEntry = {
-        type,
-        donor: data.donor || data.recipient || data.winner,
-        amount: data.amount,
-        timestamp: data.timestamp || new Date().toISOString(),
-        transactionHash: data.transaction_hash || data.transactionHash || '',
-        status: data.status || 'completed',
-        metadata: { ...data },
-      };
-
-      this.logger.debug(`Adding to history:`, {
-        type,
-        donor: historyEntry.donor,
-        amount: historyEntry.amount,
-        transactionHash: historyEntry.transactionHash,
-      });
-
-      if (!historyEntry.transactionHash) {
-        this.logger.warn(`Missing transaction hash for history entry:`, {
-          type,
-          donor: historyEntry.donor,
-          amount: historyEntry.amount,
-        });
-      }
-
-      await this.firebaseService.saveEvent('donor_history', historyEntry);
-      this.logger.log(`Added to history:`, {
-        type,
-        donor: historyEntry.donor,
-        amount: historyEntry.amount,
-        timestamp: historyEntry.timestamp,
-      });
-    } catch (error) {
-      this.logger.error(`Error adding to history:`, {
-        error: error.message,
-        stack: error.stack,
-        type,
-        data,
-      });
     }
   }
 
@@ -253,52 +200,5 @@ export class WebhookService {
       data,
       timestamp: new Date().toISOString(),
     });
-  }
-
-  async getDonationLeaderboard(
-    limit: number = 10,
-    offset: number = 0,
-  ): Promise<any[]> {
-    this.logger.debug(`Fetching donation leaderboard:`, {
-      limit,
-      offset,
-      timestamp: new Date().toISOString(),
-    });
-    return this.firebaseService.getDonationLeaderboard(limit, offset);
-  }
-
-  async getDonationStats(): Promise<any> {
-    this.logger.debug(`Fetching donation stats:`, {
-      timestamp: new Date().toISOString(),
-    });
-    return (
-      this.firebaseService.getDocument('stats', 'donationStats') || {
-        totalDonated: 0,
-        donationCount: 0,
-        lastUpdated: new Date().toISOString(),
-      }
-    );
-  }
-
-  async getDonorInfo(address: string): Promise<any> {
-    this.logger.debug(`Fetching donor info:`, {
-      address,
-      timestamp: new Date().toISOString(),
-    });
-    return this.firebaseService.getDonorInfo(address);
-  }
-
-  async getDonorHistory(
-    address: string,
-    limit: number = 50,
-    offset: number = 0,
-  ): Promise<any> {
-    this.logger.debug(`Fetching donor history:`, {
-      address,
-      limit,
-      offset,
-      timestamp: new Date().toISOString(),
-    });
-    return this.firebaseService.getDonorHistory(address, limit, offset);
   }
 }
