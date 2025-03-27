@@ -8,7 +8,6 @@ export class WebhookService {
 
   constructor(
     private readonly firebaseService: FirebaseService,
-    private readonly raffleService: RaffleService,
   ) {}
 
   async processEvent(eventData: any): Promise<void> {
@@ -64,6 +63,7 @@ export class WebhookService {
       raffle_entry: 'raffle_entries',
       scholarship_award: 'scholarship_awards',
       donor: 'donors',
+      history: 'histories',
     };
 
     const collectionName =
