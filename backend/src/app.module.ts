@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { WebhookModule } from './webhook/webhook.module';
 import { FirebaseModule } from './firebase/firebase.module';
 import { RaffleModule } from './raffle/raffle.module';
+import { StudentModule } from './student/student.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { RaffleModule } from './raffle/raffle.module';
     WebhookModule,
     FirebaseModule,
     RaffleModule,
+    StudentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

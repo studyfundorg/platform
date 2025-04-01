@@ -1,17 +1,23 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, ConflictException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 import type { Firestore } from 'firebase-admin/firestore';
+import { Student } from '../student/entities/student.entity';
 
 @Injectable()
 export class FirebaseService implements OnModuleInit {
   private db: Firestore;
+  private bucket: admin.storage.Bucket;
 
   constructor(private configService: ConfigService) {}
 
   getFirestore(): Firestore {
     return this.db;
+  }
+
+  getBucket(): admin.storage.Bucket {
+    return this.bucket;
   }
 
   onModuleInit() {
@@ -30,6 +36,18 @@ export class FirebaseService implements OnModuleInit {
     });
 
     this.db = getFirestore(app);
+    this.bucket = admin.storage().bucket();
+  }
+
+  async uploadFile(file: Express.Multer.File, path: string): Promise<string> {
+    const fileBuffer = file.buffer;
+    const fileUpload = this.bucket.file(path);
+    
+    await fileUpload.save(fileBuffer, {
+      contentType: file.mimetype,
+    });
+
+    return fileUpload.publicUrl();
   }
 
   async saveEvent(collectionName: string, data: any): Promise<string> {
@@ -243,5 +261,69 @@ export class FirebaseService implements OnModuleInit {
       return value;
     }
     return 0;
+  }
+
+  async findStudentByEmailOrAddress(email: string, address: string): Promise<Student | null> {
+    const snapshot = await this.db.collection('students')
+      .where('email', '==', email)
+      .limit(1)
+      .get();
+
+    if (!snapshot.empty) {
+      return snapshot.docs[0].data() as Student;
+    }
+
+    const addressSnapshot = await this.db.collection('students')
+      .where('address', '==', address)
+      .limit(1)
+      .get();
+
+    if (!addressSnapshot.empty) {
+      return addressSnapshot.docs[0].data() as Student;
+    }
+
+    return null;
+  }
+
+  async saveStudent(student: Student): Promise<void> {
+    const existingStudent = await this.findStudentByEmailOrAddress(student.email, student.address);
+    
+    if (existingStudent && existingStudent.id !== student.id) {
+      throw new ConflictException('A student with this email or address already exists');
+    }
+
+    await this.db.collection('students').doc(student.id).set(student);
+  }
+
+  async upsertStudent(student: Partial<Student>): Promise<Student> {
+    const existingStudent = await this.findStudentByEmailOrAddress(student.email, student.address);
+    
+    if (existingStudent) {
+      // Update existing student
+      const updatedStudent = {
+        ...existingStudent,
+        ...student,
+        id: existingStudent.id,
+        updatedAt: new Date()
+      };
+      await this.db.collection('students').doc(existingStudent.id).set(updatedStudent);
+      return updatedStudent;
+    }
+
+    // Create new student
+    const newStudent: Student = {
+      id: student.id || admin.firestore().collection('students').doc().id,
+      ...student,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    } as Student;
+
+    await this.db.collection('students').doc(newStudent.id).set(newStudent);
+    return newStudent;
+  }
+
+  async getStudent(studentId: string): Promise<Student | null> {
+    const doc = await this.db.collection('students').doc(studentId).get();
+    return doc.exists ? (doc.data() as Student) : null;
   }
 }
