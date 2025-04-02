@@ -7,6 +7,7 @@ COPY package*.json ./
 
 # Install dependencies
 RUN npm ci --legacy-peer-deps
+RUN npm install --save-dev @types/multer --legacy-peer-deps
 
 # Copy source code
 COPY . .
