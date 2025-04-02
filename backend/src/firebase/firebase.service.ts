@@ -3,12 +3,14 @@ import { ConfigService } from '@nestjs/config';
 import * as admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 import type { Firestore } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
+import type { Bucket } from '@google-cloud/storage';
 import { Student } from '../student/entities/student.entity';
 
 @Injectable()
 export class FirebaseService implements OnModuleInit {
   private db: Firestore;
-  private bucket: admin.storage.Bucket;
+  private bucket: Bucket;
 
   constructor(private configService: ConfigService) {}
 
@@ -16,7 +18,7 @@ export class FirebaseService implements OnModuleInit {
     return this.db;
   }
 
-  getBucket(): admin.storage.Bucket {
+  getBucket(): Bucket {
     return this.bucket;
   }
 
@@ -36,7 +38,7 @@ export class FirebaseService implements OnModuleInit {
     });
 
     this.db = getFirestore(app);
-    this.bucket = admin.storage().bucket();
+    this.bucket = getStorage(app).bucket();
   }
 
   async uploadFile(file: Express.Multer.File, path: string): Promise<string> {
