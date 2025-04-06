@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, ConflictException } from '@nestjs/common';
+import { Injectable, OnModuleInit, ConflictException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -9,6 +9,7 @@ import { Student } from '../student/entities/student.entity';
 
 @Injectable()
 export class FirebaseService implements OnModuleInit {
+  private readonly logger = new Logger(FirebaseService.name);
   private db: Firestore;
   private bucket: Bucket;
 
@@ -23,33 +24,53 @@ export class FirebaseService implements OnModuleInit {
   }
 
   onModuleInit() {
+    const projectId = this.configService.get<string>('FIREBASE_PROJECT_ID');
+    const storageBucket = this.configService.get<string>('FIREBASE_STORAGE_BUCKET');
+    
+    this.logger.debug(`Initializing Firebase with projectId: ${projectId} and storageBucket: ${storageBucket}`);
+    
     const serviceAccount = {
-      projectId: this.configService.get<string>('FIREBASE_PROJECT_ID'),
+      projectId,
       clientEmail: this.configService.get<string>('FIREBASE_CLIENT_EMAIL'),
       privateKey: this.configService
         .get<string>('FIREBASE_PRIVATE_KEY')
         ?.replace(/\\n/g, '\n'),
     };
 
-    // Initialize Firebase Admin
-    const app = admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-      storageBucket: this.configService.get<string>('FIREBASE_STORAGE_BUCKET'),
-    });
+    try {
+      // Initialize Firebase Admin
+      const app = admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        storageBucket,
+      });
 
-    this.db = getFirestore(app);
-    this.bucket = getStorage(app).bucket();
+      this.db = getFirestore(app);
+      this.bucket = getStorage(app).bucket();
+      
+      this.logger.debug('Firebase initialization completed successfully');
+    } catch (error) {
+      this.logger.error('Failed to initialize Firebase:', error);
+      throw error;
+    }
   }
 
   async uploadFile(file: Express.Multer.File, path: string): Promise<string> {
-    const fileBuffer = file.buffer;
-    const fileUpload = this.bucket.file(path);
-    
-    await fileUpload.save(fileBuffer, {
-      contentType: file.mimetype,
-    });
+    try {
+      this.logger.debug(`Attempting to upload file to path: ${path}`);
+      const fileBuffer = file.buffer;
+      const fileUpload = this.bucket.file(path);
+      
+      await fileUpload.save(fileBuffer, {
+        contentType: file.mimetype,
+      });
 
-    return fileUpload.publicUrl();
+      const publicUrl = fileUpload.publicUrl();
+      this.logger.debug(`File uploaded successfully. Public URL: ${publicUrl}`);
+      return publicUrl;
+    } catch (error) {
+      this.logger.error(`Failed to upload file to path ${path}:`, error);
+      throw error;
+    }
   }
 
   async saveEvent(collectionName: string, data: any): Promise<string> {

@@ -10,15 +10,20 @@ export class StudentService {
 
   async create(createStudentDto: CreateStudentDto): Promise<Student> {
     const studentData: Partial<Student> = {
+      id: uuidv4(),
       address: createStudentDto.address,
       email: createStudentDto.email,
-      ocid: createStudentDto.ocid,
-      firstName: createStudentDto.firstName,
-      lastName: createStudentDto.lastName,
-      universityName: createStudentDto.universityName,
-      universityCity: createStudentDto.universityCity,
-      universityCountry: createStudentDto.universityCountry,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
+
+    // Only add optional fields if they are defined
+    if (createStudentDto.ocid) studentData.ocid = createStudentDto.ocid;
+    if (createStudentDto.firstName) studentData.firstName = createStudentDto.firstName;
+    if (createStudentDto.lastName) studentData.lastName = createStudentDto.lastName;
+    if (createStudentDto.universityName) studentData.universityName = createStudentDto.universityName;
+    if (createStudentDto.universityCity) studentData.universityCity = createStudentDto.universityCity;
+    if (createStudentDto.universityCountry) studentData.universityCountry = createStudentDto.universityCountry;
 
     if (createStudentDto.transcript) {
       const transcriptPath = `students/${studentData.id}/transcript`;
